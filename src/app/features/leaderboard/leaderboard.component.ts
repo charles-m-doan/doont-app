@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { DataService } from './data.service';
 
 @Component({
   selector: 'app-leaderboard',
@@ -8,5 +9,7 @@ import { Component } from '@angular/core';
   styleUrl: './leaderboard.component.css'
 })
 export class LeaderboardComponent {
+
+  constructor(private dataService: DataService) {}
 
 }
