@@ -10,5 +10,4 @@ import { RouterOutlet } from '@angular/router';
 })
 export class AppComponent {
   title = 'DOONT';
-   videoSrc = 'assets/heaven_drips.mp4';
 }
