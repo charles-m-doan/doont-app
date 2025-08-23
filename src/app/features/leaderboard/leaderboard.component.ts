@@ -1,15 +1,25 @@
-import { Component } from '@angular/core';
-import { DataService } from './data.service';
+import { Component, OnInit } from '@angular/core';
+import { ApiService } from '../../shared/api.service';
+import { Observable } from 'rxjs';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-leaderboard',
   standalone: true,
-  imports: [],
+  imports: [CommonModule],
   templateUrl: './leaderboard.component.html',
   styleUrl: './leaderboard.component.css'
 })
-export class LeaderboardComponent {
+export class LeaderboardComponent implements OnInit {
 
-  constructor(private dataService: DataService) {}
+  public readonly text$: Observable<string>;
+
+  constructor(private apiService: ApiService) {
+    this.text$ = this.apiService.testResponse$;
+  }
+
+  ngOnInit(): void {
+    this.apiService.getTestFile();
+  }
 
 }
