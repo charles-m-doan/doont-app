@@ -2,33 +2,31 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
+permissions: { contents: read, pages: write, id-token: write }
+concurrency: { group: pages, cancel-in-progress: true }
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: 'npm' }
+        with: { node-version: 20, cache: npm }
       - run: npm ci
       - run: npx ng build --base-href /doont-app/
-      - run: |
-          cp dist/doont-app/browser/index.html dist/doont-app/browser/404.html
-          touch dist/doont-app/browser/.nojekyll
+      - name: Locate Angular browser output
+        run: echo "BROWSER_DIR=$(find dist -type d -name browser -print -quit)" >> $GITHUB_ENV
+      - name: SPA fallback + nojekyll
+        run: |
+          cp "$BROWSER_DIR/index.html" "$BROWSER_DIR/404.html"
+          touch "$BROWSER_DIR/.nojekyll"
       - uses: actions/upload-pages-artifact@v3
-        with: { path: dist/doont-app/browser }
+        with: { path: ${{ env.BROWSER_DIR }} }
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    environment: { name: github-pages, url: ${{ steps.deployment.outputs.page_url }} }
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
