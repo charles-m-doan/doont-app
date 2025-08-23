@@ -13,13 +13,16 @@ import { CommonModule } from '@angular/common';
 export class LeaderboardComponent implements OnInit {
 
   public readonly text$: Observable<string>;
+  public readonly doontXlsx$: Observable<Record<string, any[]>>;
 
   constructor(private apiService: ApiService) {
     this.text$ = this.apiService.testResponse$;
+    this.doontXlsx$ = this.apiService.doontXlsx$;
   }
 
   ngOnInit(): void {
     this.apiService.getTestFile();
+    this.apiService.getDoontXlsx();
   }
 
 }
