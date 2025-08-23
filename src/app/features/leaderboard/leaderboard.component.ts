@@ -14,15 +14,18 @@ export class LeaderboardComponent implements OnInit {
 
   public readonly text$: Observable<string>;
   public readonly doontXlsx$: Observable<Record<string, any[]>>;
+  public readonly repoFiles$: Observable<string[]>;
 
   constructor(private apiService: ApiService) {
     this.text$ = this.apiService.testResponse$;
     this.doontXlsx$ = this.apiService.doontXlsx$;
+    this.repoFiles$ = this.apiService.repoFiles$;
   }
 
   ngOnInit(): void {
     this.apiService.getTestFile();
     this.apiService.getDoontXlsx();
+    this.apiService.getRepoFiles();
   }
 
 }

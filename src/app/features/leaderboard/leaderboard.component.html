@@ -2,3 +2,5 @@
 <p>{{ text$ | async }}</p>
 
 <pre>{{ doontXlsx$ | async | json }}</pre>
+
+<li *ngFor="let p of (repoFiles$ | async)">{{ p }}</li>

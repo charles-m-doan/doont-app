@@ -1,10 +1,18 @@
 import { HttpClient, HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable, BehaviorSubject, map, switchMap } from 'rxjs';
 import * as XLSX from 'xlsx';
+
+type GhBranch = { name: string; commit: { sha: string } };
+type GhCommit = { tree: { sha: string } };
+type GhTreeResp = { tree: Array<{ path: string; type: 'blob' | 'tree' }> };
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
+
+  private static readonly GH_OWNER = 'charles-m-doan';
+  private static readonly GH_REPO = 'doont';
+  private static readonly GH_BRANCH = 'main';
 
   public static readonly TEST_URL: string = 'https://raw.githubusercontent.com/charles-m-doan/doont/refs/heads/main/test.txt';
   public static readonly DOONT_XLSX_URL: string = 'https://raw.githubusercontent.com/charles-m-doan/doont/main/Doont.xlsx';
@@ -12,9 +20,11 @@ export class ApiService {
   public testResponse$: Observable<string>;
   private _testResponse: BehaviorSubject<string>;
 
-  // XLSX -> JSON stream
   public doontXlsx$: Observable<Record<string, any[]>>;
   private _doontXlsx: BehaviorSubject<Record<string, any[]>>;
+
+  private _repoFiles = new BehaviorSubject<string[]>([]);
+  public repoFiles$: Observable<string[]> = this._repoFiles.asObservable();
 
   constructor(private httpClient: HttpClient) {
     this._testResponse = new BehaviorSubject('Default Text');
@@ -22,6 +32,9 @@ export class ApiService {
 
     this._doontXlsx = new BehaviorSubject<Record<string, any[]>>({});
     this.doontXlsx$ = this._doontXlsx.asObservable();
+
+    this._repoFiles = new BehaviorSubject<string[]>([]);
+    this.repoFiles$ = this._repoFiles.asObservable();
   }
 
   public getTestFile(): void {
@@ -98,6 +111,34 @@ export class ApiService {
         error: (err: HttpErrorResponse) => {
           console.error('HTTP ERROR (XLSX):', err.message);
         },
+      });
+  }
+
+  /** Get ALL files in repo (paths), recursively */
+  public getRepoFiles(): void {
+    const o = ApiService.GH_OWNER, r = ApiService.GH_REPO, b = ApiService.GH_BRANCH;
+    const headers = { Accept: 'application/vnd.github+json' };
+
+    this.httpClient.get<GhBranch>(`https://api.github.com/repos/${o}/${r}/branches/${b}`, { headers }).pipe(
+      switchMap(branch =>
+        this.httpClient.get<GhCommit>(`https://api.github.com/repos/${o}/${r}/git/commits/${branch.commit.sha}`, { headers })
+      ),
+      switchMap(commit =>
+        this.httpClient.get<GhTreeResp>(
+          `https://api.github.com/repos/${o}/${r}/git/trees/${commit.tree.sha}`,
+          { headers, params: { recursive: '1' } }
+        )
+      ),
+      map(resp => resp.tree.filter(n => n.type === 'blob').map(n => n.path)) // files only
+    )
+      .subscribe({
+        next: (paths) => {
+          console.log('REPO FILES COUNT:', paths.length);
+          this._repoFiles.next(paths);
+        },
+        error: (err: HttpErrorResponse) => {
+          console.error('HTTP ERROR (repo tree):', err.message);
+        }
       });
   }
 
