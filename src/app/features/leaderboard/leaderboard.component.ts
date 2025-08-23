@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
 import { ApiService } from '../../shared/api.service';
 import { Observable } from 'rxjs';
 import { CommonModule } from '@angular/common';
@@ -11,6 +11,8 @@ import { CommonModule } from '@angular/common';
   styleUrl: './leaderboard.component.css'
 })
 export class LeaderboardComponent implements OnInit {
+
+  @ViewChild('bgm', { static: true }) bgm!: ElementRef<HTMLAudioElement>;
 
   public readonly text$: Observable<string>;
   public readonly doontXlsx$: Observable<Record<string, any[]>>;
@@ -26,6 +28,20 @@ export class LeaderboardComponent implements OnInit {
     this.apiService.getTestFile();
     this.apiService.getDoontXlsx();
     this.apiService.getRepoFiles();
+  }
+
+  ngAfterViewInit() {
+    const el = this.bgm.nativeElement;
+    el.play().catch(() => { });
+    const unlock = () => {
+      el.muted = false;
+      el.play().catch(() => { });
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+      console.log("UNMUTE!");
+    };
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('keydown', unlock, { once: true });
   }
 
 }
