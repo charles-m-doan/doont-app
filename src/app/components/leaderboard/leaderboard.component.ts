@@ -13,7 +13,7 @@ import { DataService } from '../../services/data.service';
 })
 export class LeaderboardComponent implements OnInit {
 
-  constructor(private dataService: DataService) {
+  constructor(public dataService: DataService) {
   }
 
   ngOnInit(): void {
