@@ -6,11 +6,11 @@ describe('UrlBuilder', () => {
   });
 
   describe('getShaFetchUrl', () => {
-    const expected: string = '';
     beforeEach(() => {
     });
     it('should return full url', () => {
       // GIVEN
+      const expected: string = 'https://api.github.com/repos/charles-m-doan/doont/commits/main';
       // WHEN
       const actual: string = UrlBuilder.getShaFetchUrl();
       // THEN
