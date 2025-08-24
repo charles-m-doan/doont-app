@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { LeaderboardComponent } from './features/leaderboard/leaderboard.component';
+import { LeaderboardComponent } from './components/leaderboard/leaderboard.component';
 
 @Component({
   selector: 'app-root',
