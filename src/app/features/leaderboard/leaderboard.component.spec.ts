@@ -1,6 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { LeaderboardComponent } from './leaderboard.component';
+import { ApiService } from '../../shared/api.service';
+import { createMockProvider } from '../../testing/test-util';
+import { ngMocks } from 'ng-mocks';
 
 describe('LeaderboardComponent', () => {
   let component: LeaderboardComponent;
@@ -8,10 +11,13 @@ describe('LeaderboardComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [LeaderboardComponent]
+      imports: [LeaderboardComponent],
+      providers: [
+        createMockProvider(ApiService)
+      ]
     })
-    .compileComponents();
-    
+      .compileComponents();
+    ngMocks.autoSpy('jasmine');
     fixture = TestBed.createComponent(LeaderboardComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
