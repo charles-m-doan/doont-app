@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable, BehaviorSubject, tap } from 'rxjs';
 import { UrlBuilder } from '../util/url.builder';
 import { ShaResponseDto } from '../models/response.models';
 
@@ -17,12 +17,11 @@ export class ApiService {
 
   public getLatestSha(): void {
     const url = UrlBuilder.getLatestShaUrl();
-
     this.httpClient
-      .get<ShaResponseDto>(url, { observe: 'response' }) // body is ShaResponseDto
+      .get<ShaResponseDto>(url, { observe: 'response' })
       .subscribe({
         next: (res: HttpResponse<ShaResponseDto>) => {
-          if (res.body) this._shaResponse.next(res.body); // { sha: string }
+          if (res.body) this._shaResponse.next(res.body);
         },
         error: (err: HttpErrorResponse) => console.error('ERROR:', err.message),
       });
