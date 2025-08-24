@@ -2,6 +2,7 @@ import { Component, OnInit, AfterViewInit, ElementRef, ViewChild } from '@angula
 import { ApiService } from '../../services/api.service';
 import { Observable } from 'rxjs';
 import { CommonModule } from '@angular/common';
+import { DataService } from '../../services/data.service';
 
 @Component({
   selector: 'app-leaderboard',
@@ -12,12 +13,10 @@ import { CommonModule } from '@angular/common';
 })
 export class LeaderboardComponent implements OnInit {
 
-  constructor(private apiService: ApiService) {
-
+  constructor(private dataService: DataService) {
   }
 
   ngOnInit(): void {
-
   }
 
 }

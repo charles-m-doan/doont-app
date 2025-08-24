@@ -4,6 +4,7 @@ import { LeaderboardComponent } from './leaderboard.component';
 import { ApiService } from '../../services/api.service';
 import { createMockProvider } from '../../testing/test-util';
 import { ngMocks } from 'ng-mocks';
+import { DataService } from '../../services/data.service';
 
 describe('LeaderboardComponent', () => {
   let component: LeaderboardComponent;
@@ -13,7 +14,8 @@ describe('LeaderboardComponent', () => {
     await TestBed.configureTestingModule({
       imports: [LeaderboardComponent],
       providers: [
-        createMockProvider(ApiService)
+        // createMockProvider(ApiService),
+        createMockProvider(DataService)
       ]
     })
       .compileComponents();
