@@ -1,22 +1,21 @@
-import { HttpClient, HttpErrorResponse, HttpHeaders, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, tap, catchError, throwError, take } from 'rxjs';
+import { Observable, BehaviorSubject, catchError, throwError } from 'rxjs';
 import { UrlBuilder } from '../util/url.builder';
 import { ApiError, GitBlobResponseDto, GitTreeResponseDto, ShaResponseDto } from '../models/response.models';
-import { EMPTY_BLOB_RESPONSE, EMPTY_FILE_LIST_RESPONSE, EMPTY_SHA_RESPONSE } from '../models/response.constants';
-import { cloneDeep } from 'lodash';
+import { emptyShaResponse, emptyFileListResponse, emptyBlobResponse } from '../models/response.constants';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http: HttpClient = inject(HttpClient);
 
-  private readonly _shaResponse: BehaviorSubject<ShaResponseDto> = new BehaviorSubject<ShaResponseDto>(EMPTY_SHA_RESPONSE);
+  private readonly _shaResponse: BehaviorSubject<ShaResponseDto> = new BehaviorSubject<ShaResponseDto>(emptyShaResponse());
   public readonly shaResponse$: Observable<ShaResponseDto> = this._shaResponse.asObservable();
 
-  private readonly _fileListResponse: BehaviorSubject<GitTreeResponseDto> = new BehaviorSubject<GitTreeResponseDto>(EMPTY_FILE_LIST_RESPONSE);
+  private readonly _fileListResponse: BehaviorSubject<GitTreeResponseDto> = new BehaviorSubject<GitTreeResponseDto>(emptyFileListResponse());
   public readonly fileListResponse$: Observable<GitTreeResponseDto> = this._fileListResponse.asObservable();
 
-  private readonly _blobResponse: BehaviorSubject<GitBlobResponseDto> = new BehaviorSubject<GitBlobResponseDto>(EMPTY_BLOB_RESPONSE);
+  private readonly _blobResponse: BehaviorSubject<GitBlobResponseDto> = new BehaviorSubject<GitBlobResponseDto>(emptyBlobResponse());
   public readonly blobResponse$: Observable<GitBlobResponseDto> = this._blobResponse.asObservable();
 
   public fetchLatestSha(): void {
