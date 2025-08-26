@@ -11,7 +11,7 @@ export interface ShaResponseDto {
 }
 
 // Response for file list
-export interface GitTreeResponsDto {
+export interface GitTreeResponseDto {
     sha: string;
     url: string;
     tree: GitTreeEntryDto[];
@@ -27,7 +27,7 @@ export interface GitTreeEntryDto {
     size?: number;
 }
 
-export interface GitBlob {
+export interface GitBlobResponseDto {
     sha: string;
     node_id: string;
     size: number;

@@ -2,8 +2,8 @@ import { HttpClient, HttpErrorResponse, HttpHeaders, HttpResponse } from '@angul
 import { inject, Injectable } from '@angular/core';
 import { Observable, BehaviorSubject, tap, catchError, throwError, take } from 'rxjs';
 import { UrlBuilder } from '../util/url.builder';
-import { ApiError, GitBlob, ShaResponseDto } from '../models/response.models';
-import { EMPTY_BLOB_RESPONSE, EMPTY_SHA_RESPONSE } from '../models/response.constants';
+import { ApiError, GitBlobResponseDto, GitTreeResponseDto, ShaResponseDto } from '../models/response.models';
+import { EMPTY_BLOB_RESPONSE, EMPTY_FILE_LIST_RESPONSE, EMPTY_SHA_RESPONSE } from '../models/response.constants';
 import { cloneDeep } from 'lodash';
 
 @Injectable({ providedIn: 'root' })
@@ -13,8 +13,11 @@ export class ApiService {
   private readonly _shaResponse: BehaviorSubject<ShaResponseDto> = new BehaviorSubject<ShaResponseDto>(cloneDeep(EMPTY_SHA_RESPONSE));
   public readonly shaResponse$: Observable<ShaResponseDto> = this._shaResponse.asObservable();
 
-  private readonly blobSubject: BehaviorSubject<GitBlob> = new BehaviorSubject<GitBlob>(cloneDeep(EMPTY_BLOB_RESPONSE));
-  public readonly blob$: Observable<GitBlob> = this.blobSubject.asObservable();
+  private readonly _fileListResponse: BehaviorSubject<GitTreeResponseDto> = new BehaviorSubject<GitTreeResponseDto>(cloneDeep(EMPTY_FILE_LIST_RESPONSE));
+  public readonly fileListResponse$: Observable<GitTreeResponseDto> = this._fileListResponse.asObservable();
+
+  private readonly _blobResponse: BehaviorSubject<GitBlobResponseDto> = new BehaviorSubject<GitBlobResponseDto>(cloneDeep(EMPTY_BLOB_RESPONSE));
+  public readonly blobResponse$: Observable<GitBlobResponseDto> = this._blobResponse.asObservable();
 
   public fetchLatestSha(): void {
     const url = UrlBuilder.getLatestShaUrl();
@@ -30,10 +33,10 @@ export class ApiService {
 
   public fetchBlob(sha: string): void {
     const url: string = UrlBuilder.getBlobUrl(sha);
-    this.get<GitBlob>(url)
+    this.get<GitBlobResponseDto>(url)
       .pipe(take(1))
       .subscribe({
-        next: (res: GitBlob): void => { this.blobSubject.next(res); },
+        next: (res: GitBlobResponseDto): void => { this._blobResponse.next(res); },
         error: (err: ApiError): void => { console.error(err); }
       });
   }
