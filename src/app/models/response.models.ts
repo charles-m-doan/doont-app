@@ -13,9 +13,9 @@ export interface GitTreeResponsDto {
 
 export interface GitTreeEntryDto {
     path: string;
-    mode: string; // e.g. "100644"
+    mode: string;
     type: string;
     sha: string;
     url: string;
-    size?: number; // present on blobs
+    size?: number;
 }

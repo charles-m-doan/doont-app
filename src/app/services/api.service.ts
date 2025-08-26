@@ -1,19 +1,17 @@
 import { HttpClient, HttpErrorResponse, HttpResponse } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
 import { UrlBuilder } from '../util/url.builder';
 import { ShaResponseDto } from '../models/response.models';
+import { EMPTY_SHA_RESPONSE } from '../models/response.constants';
+import { cloneDeep } from 'lodash';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
+  private readonly httpClient: HttpClient = inject(HttpClient);
 
-  public shaResponse$: Observable<ShaResponseDto>;
-  private _shaResponse: BehaviorSubject<ShaResponseDto>;
-
-  constructor(private httpClient: HttpClient) {
-    this._shaResponse = new BehaviorSubject({ sha: '' });
-    this.shaResponse$ = this._shaResponse.asObservable();
-  }
+  private _shaResponse: BehaviorSubject<ShaResponseDto> = new BehaviorSubject<ShaResponseDto>(cloneDeep(EMPTY_SHA_RESPONSE));
+  public shaResponse$: Observable<ShaResponseDto> = this._shaResponse.asObservable();
 
   public getLatestSha(): void {
     const url = UrlBuilder.getLatestShaUrl();
