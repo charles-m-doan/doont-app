@@ -21,13 +21,11 @@ export class ApiService {
 
   public fetchLatestSha(): void {
     const url = UrlBuilder.getLatestShaUrl();
-    this.http
-      .get<ShaResponseDto>(url, { observe: 'response' })
+    this.get<ShaResponseDto>(url)
+      .pipe(take(1))
       .subscribe({
-        next: (res: HttpResponse<ShaResponseDto>) => {
-          if (res.body) this._shaResponse.next(res.body);
-        },
-        error: (err: HttpErrorResponse) => console.error('ERROR:', err.message),
+        next: (res: ShaResponseDto): void => { this._shaResponse.next(res); },
+        error: (err: ApiError): void => { console.error(err); }
       });
   }
 
