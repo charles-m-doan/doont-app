@@ -1,3 +1,10 @@
+export interface ApiError {
+    status: number;
+    message: string;
+    method: string;
+    url: string;
+}
+
 // Response for main latest SHA
 export interface ShaResponseDto {
     sha: string;
@@ -18,4 +25,13 @@ export interface GitTreeEntryDto {
     sha: string;
     url: string;
     size?: number;
+}
+
+export interface GitBlob {
+    sha: string;
+    node_id: string;
+    size: number;
+    url: string;
+    content: string; // base64 payload
+    encoding: 'base64' | string;
 }

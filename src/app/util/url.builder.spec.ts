@@ -40,4 +40,16 @@ describe('UrlBuilder', () => {
     });
   });
 
+  describe('getFileContentsUrl', () => {
+    it('should return full url for fetching the contents of a specific file via GET call', () => {
+      // GIVEN
+      const sha: string = '9f1b00ed734d2a8e4da39b7f442c505370bd0dfa';
+      // WHEN
+      const actual: string = UrlBuilder.getBlobUrl(sha);
+      // THEN
+      const expected: string = 'https://api.github.com/repos/charles-m-doan/doont/git/blobs/9f1b00ed734d2a8e4da39b7f442c505370bd0dfa';
+      expect(actual).toEqual(expected);
+    });
+  });
+
 });

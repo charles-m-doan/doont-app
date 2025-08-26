@@ -15,7 +15,7 @@ export class DataService {
   );
 
   constructor(private apiService: ApiService) {
-    this.apiService.getLatestSha();
+    this.apiService.fetchLatestSha();
 
     this.sha$.pipe(take(1)).subscribe((sha) => {
       console.log(sha);
