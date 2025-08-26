@@ -10,19 +10,18 @@ import { cloneDeep } from 'lodash';
 export class ApiService {
   private readonly http: HttpClient = inject(HttpClient);
 
-  private readonly _shaResponse: BehaviorSubject<ShaResponseDto> = new BehaviorSubject<ShaResponseDto>(cloneDeep(EMPTY_SHA_RESPONSE));
+  private readonly _shaResponse: BehaviorSubject<ShaResponseDto> = new BehaviorSubject<ShaResponseDto>(EMPTY_SHA_RESPONSE);
   public readonly shaResponse$: Observable<ShaResponseDto> = this._shaResponse.asObservable();
 
-  private readonly _fileListResponse: BehaviorSubject<GitTreeResponseDto> = new BehaviorSubject<GitTreeResponseDto>(cloneDeep(EMPTY_FILE_LIST_RESPONSE));
+  private readonly _fileListResponse: BehaviorSubject<GitTreeResponseDto> = new BehaviorSubject<GitTreeResponseDto>(EMPTY_FILE_LIST_RESPONSE);
   public readonly fileListResponse$: Observable<GitTreeResponseDto> = this._fileListResponse.asObservable();
 
-  private readonly _blobResponse: BehaviorSubject<GitBlobResponseDto> = new BehaviorSubject<GitBlobResponseDto>(cloneDeep(EMPTY_BLOB_RESPONSE));
+  private readonly _blobResponse: BehaviorSubject<GitBlobResponseDto> = new BehaviorSubject<GitBlobResponseDto>(EMPTY_BLOB_RESPONSE);
   public readonly blobResponse$: Observable<GitBlobResponseDto> = this._blobResponse.asObservable();
 
   public fetchLatestSha(): void {
     const url = UrlBuilder.getLatestShaUrl();
     this.get<ShaResponseDto>(url)
-      .pipe(take(1))
       .subscribe({
         next: (res: ShaResponseDto): void => { this._shaResponse.next(res); },
         error: (err: ApiError): void => { console.error(err); }
@@ -32,7 +31,6 @@ export class ApiService {
   public fetchRepoFileList(sha: string): void {
     const url: string = UrlBuilder.getFileListUrl(sha);
     this.get<GitTreeResponseDto>(url)
-      .pipe(take(1))
       .subscribe({
         next: (res: GitTreeResponseDto): void => { this._fileListResponse.next(res); },
         error: (err: ApiError): void => { console.error(err); }
@@ -42,7 +40,6 @@ export class ApiService {
   public fetchBlob(sha: string): void {
     const url: string = UrlBuilder.getBlobUrl(sha);
     this.get<GitBlobResponseDto>(url)
-      .pipe(take(1))
       .subscribe({
         next: (res: GitBlobResponseDto): void => { this._blobResponse.next(res); },
         error: (err: ApiError): void => { console.error(err); }

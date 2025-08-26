@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { LeaderboardComponent } from './leaderboard.component';
 import { ApiService } from '../../services/api.service';
-import { createMockProvider } from '../../testing/test-util';
+import { createMockProvider } from '../../testing/mocking-util';
 import { ngMocks } from 'ng-mocks';
 import { DataService } from '../../services/data.service';
 

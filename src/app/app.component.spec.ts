@@ -3,7 +3,7 @@ import { AppComponent } from './app.component';
 import { ngMocks } from 'ng-mocks';
 import { LeaderboardComponent } from './components/leaderboard/leaderboard.component';
 import { ApiService } from './services/api.service';
-import { createMockProvider } from './testing/test-util';
+import { createMockProvider } from './testing/mocking-util';
 
 describe('AppComponent', () => {
   let component: AppComponent;

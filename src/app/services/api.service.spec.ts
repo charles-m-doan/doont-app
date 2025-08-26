@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { ApiService } from './api.service';
 import { ngMocks } from 'ng-mocks';
 import { HttpClient } from '@angular/common/http';
-import { createMockProvider } from '../testing/test-util';
+import { createMockProvider } from '../testing/mocking-util';
 
 describe('ApiService', () => {
   let service: ApiService;
