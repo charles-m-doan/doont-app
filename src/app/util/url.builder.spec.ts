@@ -11,7 +11,7 @@ describe('UrlBuilder', () => {
       // WHEN
       const actual: string = UrlBuilder.getLatestShaUrl();
       // THEN
-      const expected: string = 'https://api.github.com/repos/charles-m-doan/doont/commits/main';
+      const expected: string = 'https://api.github.com/repos/charles-m-doan/doont/git/ref/heads/main';
       expect(actual).toEqual(expected);
     });
   });

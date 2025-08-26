@@ -7,6 +7,10 @@ export interface ApiError {
 
 // Response for main latest SHA
 export interface ShaResponseDto {
+    object: ShaObjectDto;
+}
+
+export interface ShaObjectDto {
     sha: string;
 }
 

@@ -29,6 +29,16 @@ export class ApiService {
       });
   }
 
+  public fetchRepoFileList(): void {
+    const url: string = UrlBuilder.getFileListUrl();
+    this.get<GitTreeResponseDto>(url)
+      .pipe(take(1))
+      .subscribe({
+        next: (res: GitTreeResponseDto): void => { this._fileListResponse.next(res); },
+        error: (err: ApiError): void => { console.error(err); }
+      });
+  }
+
   public fetchBlob(sha: string): void {
     const url: string = UrlBuilder.getBlobUrl(sha);
     this.get<GitBlobResponseDto>(url)

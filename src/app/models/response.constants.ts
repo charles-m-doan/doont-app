@@ -1,6 +1,10 @@
 import { GitBlobResponseDto, GitTreeResponseDto, ShaResponseDto } from "./response.models";
 
-export const EMPTY_SHA_RESPONSE: ShaResponseDto = { sha: '' };
+export const EMPTY_SHA_RESPONSE: ShaResponseDto = {
+    object: {
+        sha: ''
+    }
+};
 
 export const EMPTY_BLOB_RESPONSE: GitBlobResponseDto = {
     sha: '',

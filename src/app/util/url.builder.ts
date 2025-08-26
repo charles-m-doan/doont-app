@@ -18,7 +18,7 @@ export class UrlBuilder {
     public static readonly SHA_TOKEN: string = '{sha}';
     public static readonly FILE_TOKEN: string = '{file}';
     // TEMPLATES
-    public static readonly URL_TEMPLATE_LATEST_SHA: string = '{host}/repos/{owner}/{repo}/commits/{branch}';
+    public static readonly URL_TEMPLATE_LATEST_SHA: string = '{host}/repos/{owner}/{repo}/git/ref/heads/{branch}';
     public static readonly URL_TEMPLATE_FILE_LIST: string = '{host}/repos/{owner}/{repo}/git/trees/{branch}?recursive=1';
     public static readonly URL_TEMPLATE_FILE_CONTENTS: string = '{host}/{owner}/{repo}/{sha}/{file}';
     public static readonly URL_TEMPLATE_BLOB: string = '{host}/repos/{owner}/{repo}/git/blobs/{sha}';
