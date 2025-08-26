@@ -29,8 +29,8 @@ export class ApiService {
       });
   }
 
-  public fetchRepoFileList(): void {
-    const url: string = UrlBuilder.getFileListUrl();
+  public fetchRepoFileList(sha: string): void {
+    const url: string = UrlBuilder.getFileListUrl(sha);
     this.get<GitTreeResponseDto>(url)
       .pipe(take(1))
       .subscribe({

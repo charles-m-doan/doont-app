@@ -22,10 +22,9 @@ export class DataService {
 
   constructor(private apiService: ApiService) {
     this.apiService.fetchLatestSha();
-    this.apiService.fetchRepoFileList();
-
     this.sha$.subscribe((sha) => {
       console.log(sha);
+      this.apiService.fetchRepoFileList(sha);
     });
 
     this.fileList$.subscribe((tree) => {

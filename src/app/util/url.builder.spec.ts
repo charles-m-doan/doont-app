@@ -19,10 +19,11 @@ describe('UrlBuilder', () => {
   describe('getFileListUrl', () => {
     it('should return full url for list of all files in repo on main at top level', () => {
       // GIVEN
+      const sha: string = '92cb6e40f77bc7efff11fce4bb8231f847a0ba8b';
       // WHEN
-      const actual: string = UrlBuilder.getFileListUrl();
+      const actual: string = UrlBuilder.getFileListUrl(sha);
       // THEN
-      const expected: string = 'https://api.github.com/repos/charles-m-doan/doont/git/trees/main?recursive=1';
+      const expected: string = 'https://api.github.com/repos/charles-m-doan/doont/git/trees/92cb6e40f77bc7efff11fce4bb8231f847a0ba8b?recursive=1';
       expect(actual).toEqual(expected);
     });
   });

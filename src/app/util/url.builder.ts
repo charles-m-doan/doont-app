@@ -19,7 +19,7 @@ export class UrlBuilder {
     public static readonly FILE_TOKEN: string = '{file}';
     // TEMPLATES
     public static readonly URL_TEMPLATE_LATEST_SHA: string = '{host}/repos/{owner}/{repo}/git/ref/heads/{branch}';
-    public static readonly URL_TEMPLATE_FILE_LIST: string = '{host}/repos/{owner}/{repo}/git/trees/{branch}?recursive=1';
+    public static readonly URL_TEMPLATE_FILE_LIST: string = '{host}/repos/{owner}/{repo}/git/trees/{sha}?recursive=1';
     public static readonly URL_TEMPLATE_FILE_CONTENTS: string = '{host}/{owner}/{repo}/{sha}/{file}';
     public static readonly URL_TEMPLATE_BLOB: string = '{host}/repos/{owner}/{repo}/git/blobs/{sha}';
 
@@ -34,13 +34,13 @@ export class UrlBuilder {
         return TemplateUtil.replace(template, replacements);
     }
 
-    public static getFileListUrl(): string {
+    public static getFileListUrl(sha: string): string {
         const template: string = UrlBuilder.URL_TEMPLATE_FILE_LIST;
         const replacements: Replacement[] = [
             { token: UrlBuilder.HOST_TOKEN, value: UrlBuilder.API_FETCH_BASE, all: true },
             { token: UrlBuilder.OWNER_TOKEN, value: UrlBuilder.GH_OWNER, all: true },
             { token: UrlBuilder.REPO_TOKEN, value: UrlBuilder.GH_REPO, all: true },
-            { token: UrlBuilder.BRANCH_TOKEN, value: UrlBuilder.GH_BRANCH, all: true }
+            { token: UrlBuilder.SHA_TOKEN, value: sha, all: true }
         ];
         return TemplateUtil.replace(template, replacements);
     }
