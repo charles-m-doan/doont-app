@@ -1,0 +1,1 @@
+export const GITUHB_DOMAIN: string = 'github.com';
