@@ -8,7 +8,7 @@ import { GitTreeEntryDto } from '../models/response.models';
   providedIn: 'root'
 })
 export class DataService {
-
+  // this is a comment
   public readonly sha$: Observable<string> = this.apiService.shaResponse$.pipe(
     map(r => r.object.sha),
     filter(sha => sha.length > 0),
