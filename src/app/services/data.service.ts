@@ -1,6 +1,6 @@
 import { DestroyRef, Injectable, inject } from '@angular/core';
 import { ApiService } from './api.service';
-import { BehaviorSubject, Observable, map, filter, distinctUntilChanged, EMPTY, catchError, from, mergeMap, scan, shareReplay, combineLatest, tap, finalize, of } from 'rxjs';
+import { BehaviorSubject, Observable, map, filter, distinctUntilChanged, EMPTY, catchError, from, mergeMap, scan, shareReplay, combineLatest, tap, finalize, of, defer } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GitTreeEntryDto } from '../models/response.models';
 import { GitBlobResponseDto } from '../models/response.models';
@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx';
 import { GameRecordEntry, ScreenshotStatus } from '../models/game-record.models';
 import { APP_SETTINGS } from '../config/app-settings';
 import { LocalDataApiService } from './local-data-api.service';
+import { UrlBuilder } from '../util/url.builder';
 
 export interface DoontSheetDump {
   name: string;
@@ -23,6 +24,8 @@ export interface DoontWorkbookDump {
   providedIn: 'root'
 })
 export class DataService {
+
+  private readonly LOG_PREFIX: string = '[DataService]';
 
   private readonly destroyRef: DestroyRef = inject(DestroyRef);
 
@@ -119,7 +122,10 @@ export class DataService {
   );
 
   private readonly localFilePaths$: Observable<string[]> = (this.isLocalMode
-    ? this.localDataApiService.getTree$(this.localBaseUrl).pipe(catchError(() => of([])))
+    ? defer(() => {
+      this.logFetch('GET', this.buildLocalTreeUrl());
+      return this.localDataApiService.getTree$(this.localBaseUrl).pipe(catchError(() => of([])));
+    })
     : of([]))
     .pipe(shareReplay({ bufferSize: 1, refCount: true }));
 
@@ -208,6 +214,7 @@ export class DataService {
 
   constructor(private apiService: ApiService, private localDataApiService: LocalDataApiService) {
     if (this.isLocalMode) {
+      this.logInfo(`Mode: local (baseUrl=${this.localBaseUrl})`);
       this.localFilePaths$
         .pipe(
           map((paths: string[]): string[] => paths.filter(p => typeof p === 'string' && p.length > 0)),
@@ -220,11 +227,14 @@ export class DataService {
       return;
     }
 
+    this.logInfo('Mode: github');
+    this.logFetch('GET', UrlBuilder.getLatestShaUrl());
     this.apiService.fetchLatestSha();
 
     this.sha$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((sha: string): void => {
+        this.logFetch('GET', UrlBuilder.getFileListUrl(sha));
         this.apiService.fetchRepoFileList(sha);
       });
 
@@ -244,17 +254,22 @@ export class DataService {
     // New batch: reset map so consumers can treat this as a full refresh.
     this._rawFileMap.next(new Map<string, string>());
 
+    this.logInfo(`Fetching ${blobs.length} files from GitHub blobs API`);
+
     this._blobFetchTotal.next(blobs.length);
     this._blobFetchCompleted.next(0);
 
     from(blobs)
       .pipe(
         mergeMap(
-          (entry: GitTreeEntryDto) => this.apiService.getBlob$(entry.sha)
-            .pipe(
-              map((blob: GitBlobResponseDto) => ({ path: entry.path, base64: this.normalizeBase64(blob.content) })),
-              catchError(() => EMPTY)
-            ),
+          (entry: GitTreeEntryDto) => {
+            this.logFetch('GET', UrlBuilder.getBlobUrl(entry.sha), `(${entry.path})`);
+            return this.apiService.getBlob$(entry.sha)
+              .pipe(
+                map((blob: GitBlobResponseDto) => ({ path: entry.path, base64: this.normalizeBase64(blob.content) })),
+                catchError(() => EMPTY)
+              );
+          },
           this.BLOB_FETCH_CONCURRENCY
         ),
         tap(() => this._blobFetchCompleted.next(this._blobFetchCompleted.value + 1)),
@@ -276,17 +291,22 @@ export class DataService {
   private fetchAndStoreLocalFiles(paths: string[]): void {
     this._rawFileMap.next(new Map<string, string>());
 
+    this.logInfo(`Fetching ${paths.length} files from local server`);
+
     this._blobFetchTotal.next(paths.length);
     this._blobFetchCompleted.next(0);
 
     from(paths)
       .pipe(
         mergeMap(
-          (p: string) => this.localDataApiService.getFileBase64$(this.localBaseUrl, p)
-            .pipe(
-              map(r => ({ path: r.path, base64: this.normalizeBase64(r.base64) })),
-              catchError(() => EMPTY)
-            ),
+          (p: string) => {
+            this.logFetch('GET', this.buildLocalFileUrl(p));
+            return this.localDataApiService.getFileBase64$(this.localBaseUrl, p)
+              .pipe(
+                map(r => ({ path: r.path, base64: this.normalizeBase64(r.base64) })),
+                catchError(() => EMPTY)
+              );
+          },
           this.BLOB_FETCH_CONCURRENCY
         ),
         tap(() => this._blobFetchCompleted.next(this._blobFetchCompleted.value + 1)),
@@ -324,6 +344,25 @@ export class DataService {
       // ignore
     }
     return APP_SETTINGS.localDataBaseUrl.replace(/\/$/, '');
+  }
+
+  private buildLocalTreeUrl(): string {
+    return `${this.localBaseUrl.replace(/\/$/, '')}/__tree`;
+  }
+
+  private buildLocalFileUrl(path: string): string {
+    const encoded: string = encodeURIComponent(path);
+    return `${this.localBaseUrl.replace(/\/$/, '')}/__file?path=${encoded}`;
+  }
+
+  private logInfo(message: string): void {
+    // eslint-disable-next-line no-console
+    console.info(this.LOG_PREFIX, message);
+  }
+
+  private logFetch(method: string, url: string, extra?: string): void {
+    // eslint-disable-next-line no-console
+    console.info(this.LOG_PREFIX, `${method} ${url}${extra ? ` ${extra}` : ''}`);
   }
 
   private normalizeBase64(content: string | null | undefined): string {
