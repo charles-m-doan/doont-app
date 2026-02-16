@@ -1,7 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AppComponent } from './app.component';
 import { ngMocks } from 'ng-mocks';
-import { LeaderboardComponent } from './components/leaderboard/leaderboard.component';
 import { ApiService } from './services/api.service';
 import { createMockProvider } from './testing/mocking-util';
 
@@ -11,7 +10,7 @@ describe('AppComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AppComponent, LeaderboardComponent],
+      imports: [AppComponent],
       providers: [
         createMockProvider(ApiService)
       ]

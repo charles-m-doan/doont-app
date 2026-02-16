@@ -1,0 +1,16 @@
+
+.tabs {
+	display: flex;
+	gap: 8px;
+	margin: 12px 0;
+}
+
+.tabs button {
+	padding: 6px 10px;
+	cursor: pointer;
+}
+
+.tabs button.active {
+	font-weight: 700;
+}
+
