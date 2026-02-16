@@ -1,8 +1,6 @@
-<p>Records Works</p>
-
 <ng-container *ngIf="dataService.recordsWithScreenshots$ | async as cards">
     <ng-container *ngIf="cards.length > 0; else loading">
-        <p>Records: {{ cards.length }}</p>
+        <p>Total Games Played: {{ cards.length }}</p>
 
         <app-record-card
                          *ngFor="let c of cards"
