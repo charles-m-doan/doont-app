@@ -22,6 +22,7 @@
     </div>
 
     <ng-template #missing>
-        <div class="missing">No screenshot found for {{ record.dateIso }}.</div>
+        <div class="missing" *ngIf="screenshotStatus === 'missing'">No screenshot found for {{ record.dateIso }}.</div>
+        <div class="missing" *ngIf="screenshotStatus === 'searching'">Searching for screenshot…</div>
     </ng-template>
 </div>

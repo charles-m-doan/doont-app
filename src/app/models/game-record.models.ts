@@ -5,6 +5,8 @@ export interface GamePlacements {
     fourth: string | null;
 }
 
+export type ScreenshotStatus = 'found' | 'searching' | 'missing';
+
 export interface GameRecordEntry {
     gameNumber: number;
     /** ISO date used for screenshot filenames, e.g. 2025-07-27 */

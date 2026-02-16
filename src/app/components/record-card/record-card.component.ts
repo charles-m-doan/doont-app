@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
-import { GameRecordEntry } from '../../models/game-record.models';
+import { GameRecordEntry, ScreenshotStatus } from '../../models/game-record.models';
 
 @Component({
     selector: 'app-record-card',
@@ -13,4 +13,5 @@ export class RecordCardComponent {
     @Input({ required: true }) record!: GameRecordEntry;
     @Input() screenshotUrl: string | null = null;
     @Input() screenshotPath: string | null = null;
+    @Input() screenshotStatus: ScreenshotStatus = 'searching';
 }

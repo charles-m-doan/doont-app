@@ -1,11 +1,11 @@
 import { DestroyRef, Injectable, inject } from '@angular/core';
 import { ApiService } from './api.service';
-import { BehaviorSubject, Observable, map, filter, distinctUntilChanged, EMPTY, catchError, from, mergeMap, scan, shareReplay, combineLatest } from 'rxjs';
+import { BehaviorSubject, Observable, map, filter, distinctUntilChanged, EMPTY, catchError, from, mergeMap, scan, shareReplay, combineLatest, tap, finalize } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GitTreeEntryDto } from '../models/response.models';
 import { GitBlobResponseDto } from '../models/response.models';
 import * as XLSX from 'xlsx';
-import { GameRecordEntry } from '../models/game-record.models';
+import { GameRecordEntry, ScreenshotStatus } from '../models/game-record.models';
 
 export interface DoontSheetDump {
   name: string;
@@ -26,6 +26,21 @@ export class DataService {
 
   private readonly _rawFileMap: BehaviorSubject<Map<string, string>> = new BehaviorSubject<Map<string, string>>(new Map<string, string>());
   public readonly rawFileMap$: Observable<Map<string, string>> = this._rawFileMap.asObservable();
+
+  private readonly _blobFetchTotal: BehaviorSubject<number> = new BehaviorSubject<number>(0);
+  public readonly blobFetchTotal$: Observable<number> = this._blobFetchTotal.asObservable();
+
+  private readonly _blobFetchCompleted: BehaviorSubject<number> = new BehaviorSubject<number>(0);
+  public readonly blobFetchCompleted$: Observable<number> = this._blobFetchCompleted.asObservable();
+
+  public readonly blobFetchInProgress$: Observable<boolean> = combineLatest([
+    this.blobFetchTotal$,
+    this.blobFetchCompleted$
+  ]).pipe(
+    map(([total, completed]) => total > 0 && completed < total),
+    distinctUntilChanged(),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
 
   // ---- Decoded content (what the UI should typically depend on)
   public readonly decodedFileMap$: Observable<Map<string, Uint8Array>> = this.rawFileMap$.pipe(
@@ -98,23 +113,53 @@ export class DataService {
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
-  public readonly recordsWithScreenshots$: Observable<Array<{ record: GameRecordEntry; screenshotUrl: string | null; screenshotPath: string | null }>> =
-    combineLatest([this.gameRecords$, this.screenshots$]).pipe(
-      map(([records, shots]) => {
-        const byPath: Map<string, string> = new Map<string, string>(shots.map(s => [s.path, s.dataUrl] as const));
-        const out = records.map((record: GameRecordEntry) => {
-          const matchPrefix: string = `screenshots/${record.dateIso}.`;
-          const shot = shots.find(s => s.path.startsWith(matchPrefix));
-          const screenshotPath: string | null = shot?.path ?? null;
-          const screenshotUrl: string | null = screenshotPath ? (byPath.get(screenshotPath) ?? null) : null;
-          return { record, screenshotUrl, screenshotPath };
-        });
-        // Show most recent first.
-        out.sort((a, b) => b.record.dateIso.localeCompare(a.record.dateIso));
-        return out;
-      }),
-      shareReplay({ bufferSize: 1, refCount: true })
-    );
+  public readonly repoScreenshotPaths$: Observable<Set<string>> = this.apiService.fileListResponse$.pipe(
+    map(r => r.tree),
+    map((entries: GitTreeEntryDto[]): Set<string> => {
+      const out: Set<string> = new Set<string>();
+      for (const e of entries) {
+        if (e.type === 'blob' && e.path.startsWith('screenshots/')) out.add(e.path);
+      }
+      return out;
+    }),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
+
+  public readonly recordsWithScreenshots$: Observable<Array<{
+    record: GameRecordEntry;
+    screenshotUrl: string | null;
+    screenshotPath: string | null;
+    screenshotStatus: ScreenshotStatus;
+  }>> = combineLatest([
+    this.gameRecords$,
+    this.screenshots$,
+    this.repoScreenshotPaths$,
+    this.blobFetchInProgress$
+  ]).pipe(
+    map(([records, shots, repoShotPaths, fetchInProgress]) => {
+      const byPath: Map<string, string> = new Map<string, string>(shots.map(s => [s.path, s.dataUrl] as const));
+      const out = records.map((record: GameRecordEntry) => {
+        const matchPrefix: string = `screenshots/${record.dateIso}.`;
+        const repoMatch: string | undefined = Array.from(repoShotPaths).find(p => p.startsWith(matchPrefix));
+        const shot = shots.find(s => s.path.startsWith(matchPrefix));
+
+        const screenshotPath: string | null = shot?.path ?? repoMatch ?? null;
+        const screenshotUrl: string | null = screenshotPath ? (byPath.get(screenshotPath) ?? null) : null;
+
+        const screenshotStatus: ScreenshotStatus = screenshotUrl
+          ? 'found'
+          : screenshotPath
+            ? (fetchInProgress ? 'searching' : 'missing')
+            : 'missing';
+
+        return { record, screenshotUrl, screenshotPath, screenshotStatus };
+      });
+
+      out.sort((a, b) => b.record.dateIso.localeCompare(a.record.dateIso));
+      return out;
+    }),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
 
   public readonly leaderboardReady$: Observable<boolean> = this.doontXlsxBytes$.pipe(
     map((bytes: Uint8Array | null): boolean => (bytes?.byteLength ?? 0) > 0),
@@ -169,6 +214,9 @@ export class DataService {
     // New batch: reset map so consumers can treat this as a full refresh.
     this._rawFileMap.next(new Map<string, string>());
 
+    this._blobFetchTotal.next(blobs.length);
+    this._blobFetchCompleted.next(0);
+
     from(blobs)
       .pipe(
         mergeMap(
@@ -179,6 +227,13 @@ export class DataService {
             ),
           this.BLOB_FETCH_CONCURRENCY
         ),
+        tap(() => this._blobFetchCompleted.next(this._blobFetchCompleted.value + 1)),
+        finalize(() => {
+          // Ensure we never show "in progress" forever for this batch.
+          const total: number = this._blobFetchTotal.value;
+          const completed: number = this._blobFetchCompleted.value;
+          if (total > 0 && completed < total) this._blobFetchCompleted.next(total);
+        }),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(({ path, base64 }: { path: string; base64: string }): void => {
