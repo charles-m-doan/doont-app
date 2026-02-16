@@ -7,6 +7,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const DEFAULT_PORT = 4173;
+// Local dev default (Windows). Override via DOONT_LOCAL_DIR or argv[2] if needed.
+const DEFAULT_ROOT_DIR = 'C:\\Users\\cmatt\\OneDrive\\doont';
 
 function normalizeRelPath(p) {
   return p.split(path.sep).join('/');
@@ -60,14 +62,11 @@ function getQueryParam(urlObj, key) {
 }
 
 async function main() {
-  const rootDir = process.env.DOONT_LOCAL_DIR || process.argv[2];
+  const rootDir = process.env.DOONT_LOCAL_DIR || process.argv[2] || DEFAULT_ROOT_DIR;
   const port = Number(process.env.DOONT_LOCAL_PORT || process.argv[3] || DEFAULT_PORT);
 
-  if (!rootDir) {
-    console.error('Missing DOONT_LOCAL_DIR or argv[2].');
-    console.error('Example (PowerShell):');
-    console.error('  $env:DOONT_LOCAL_DIR="C:\\Users\\cmatt\\OneDrive\\doont"; npm run local-data');
-    process.exit(1);
+  if (!process.env.DOONT_LOCAL_DIR && !process.argv[2]) {
+    console.log(`Using default local data dir: ${DEFAULT_ROOT_DIR}`);
   }
 
   const resolvedRoot = path.resolve(rootDir);
