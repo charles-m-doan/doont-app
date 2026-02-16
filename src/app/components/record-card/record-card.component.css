@@ -1,0 +1,34 @@
+.card {
+  border: 1px solid;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 16px 0;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.placements,
+.times {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 16px;
+  margin: 10px 0;
+}
+
+.screenshot img {
+  display: block;
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+  object-fit: contain;
+}
+
+.missing {
+  margin-top: 8px;
+}

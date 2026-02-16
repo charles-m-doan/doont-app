@@ -1,6 +1,6 @@
 import { DestroyRef, Injectable, inject } from '@angular/core';
 import { ApiService } from './api.service';
-import { BehaviorSubject, Observable, map, filter, distinctUntilChanged, EMPTY, catchError, from, mergeMap, scan, shareReplay } from 'rxjs';
+import { BehaviorSubject, Observable, map, filter, distinctUntilChanged, EMPTY, catchError, from, mergeMap, scan, shareReplay, combineLatest } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GitTreeEntryDto } from '../models/response.models';
 import { GitBlobResponseDto } from '../models/response.models';
@@ -97,6 +97,24 @@ export class DataService {
     }),
     shareReplay({ bufferSize: 1, refCount: true })
   );
+
+  public readonly recordsWithScreenshots$: Observable<Array<{ record: GameRecordEntry; screenshotUrl: string | null; screenshotPath: string | null }>> =
+    combineLatest([this.gameRecords$, this.screenshots$]).pipe(
+      map(([records, shots]) => {
+        const byPath: Map<string, string> = new Map<string, string>(shots.map(s => [s.path, s.dataUrl] as const));
+        const out = records.map((record: GameRecordEntry) => {
+          const matchPrefix: string = `screenshots/${record.dateIso}.`;
+          const shot = shots.find(s => s.path.startsWith(matchPrefix));
+          const screenshotPath: string | null = shot?.path ?? null;
+          const screenshotUrl: string | null = screenshotPath ? (byPath.get(screenshotPath) ?? null) : null;
+          return { record, screenshotUrl, screenshotPath };
+        });
+        // Show most recent first.
+        out.sort((a, b) => b.record.dateIso.localeCompare(a.record.dateIso));
+        return out;
+      }),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
 
   public readonly leaderboardReady$: Observable<boolean> = this.doontXlsxBytes$.pipe(
     map((bytes: Uint8Array | null): boolean => (bytes?.byteLength ?? 0) > 0),

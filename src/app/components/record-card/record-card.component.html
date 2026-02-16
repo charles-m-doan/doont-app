@@ -1,0 +1,27 @@
+<div class="card">
+    <div class="meta">
+        <div class="date">{{ record.dateIso }}</div>
+        <div class="game">Game #{{ record.gameNumber }}</div>
+    </div>
+
+    <div class="placements">
+        <div><strong>1st</strong>: {{ record.placements.first ?? '' }}</div>
+        <div><strong>2nd</strong>: {{ record.placements.second ?? '' }}</div>
+        <div><strong>3rd</strong>: {{ record.placements.third ?? '' }}</div>
+        <div><strong>4th</strong>: {{ record.placements.fourth ?? '' }}</div>
+    </div>
+
+    <div class="times" *ngIf="record.startTime || record.endTime || record.durationMinutes != null">
+        <div><strong>Start</strong>: {{ record.startTime ?? '' }}</div>
+        <div><strong>End</strong>: {{ record.endTime ?? '' }}</div>
+        <div><strong>Duration</strong>: {{ record.durationMinutes ?? '' }}</div>
+    </div>
+
+    <div class="screenshot" *ngIf="screenshotUrl; else missing">
+        <img [src]="screenshotUrl" [alt]="screenshotPath ?? record.dateIso" loading="lazy" />
+    </div>
+
+    <ng-template #missing>
+        <div class="missing">No screenshot found for {{ record.dateIso }}.</div>
+    </ng-template>
+</div>

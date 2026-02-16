@@ -1,17 +1,19 @@
 <p>Records Works</p>
 
-<ng-container *ngIf="dataService.screenshots$ | async as shots">
-    <ng-container *ngIf="shots.length > 0; else loading">
-        <p>Screenshots loaded: {{ shots.length }}</p>
+<ng-container *ngIf="dataService.recordsWithScreenshots$ | async as cards">
+    <ng-container *ngIf="cards.length > 0; else loading">
+        <p>Records: {{ cards.length }}</p>
 
-        <div class="screenshot" *ngFor="let shot of shots">
-            <div class="path">{{ shot.path }}</div>
-            <img [src]="shot.dataUrl" [alt]="shot.path" loading="lazy" />
-        </div>
+        <app-record-card
+                         *ngFor="let c of cards"
+                         [record]="c.record"
+                         [screenshotUrl]="c.screenshotUrl"
+                         [screenshotPath]="c.screenshotPath">
+        </app-record-card>
     </ng-container>
 </ng-container>
 
 <ng-template #loading>
-    <p>Loading screenshots…</p>
+    <p>Loading records + screenshots…</p>
     <p>Screenshots loaded so far: {{ dataService.screenshotsCount$ | async }}</p>
 </ng-template>
