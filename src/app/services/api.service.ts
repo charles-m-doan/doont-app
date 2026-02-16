@@ -45,6 +45,11 @@ export class ApiService {
       });
   }
 
+  public getBlob$(sha: string): Observable<GitBlobResponseDto> {
+    const url: string = UrlBuilder.getBlobUrl(sha);
+    return this.get<GitBlobResponseDto>(url);
+  }
+
   // ---- Internal HTTP helper + common error handling
   private get<T>(url: string, headers?: Record<string, string>): Observable<T> {
     const httpHeaders: HttpHeaders | undefined = this.toHttpHeaders(headers);
