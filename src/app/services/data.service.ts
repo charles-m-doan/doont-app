@@ -4,6 +4,18 @@ import { BehaviorSubject, Observable, map, filter, distinctUntilChanged, EMPTY, 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GitTreeEntryDto } from '../models/response.models';
 import { GitBlobResponseDto } from '../models/response.models';
+import * as XLSX from 'xlsx';
+import { GameRecordEntry } from '../models/game-record.models';
+
+export interface DoontSheetDump {
+  name: string;
+  rows: unknown[][];
+}
+
+export interface DoontWorkbookDump {
+  sheetNames: string[];
+  sheets: DoontSheetDump[];
+}
 
 @Injectable({
   providedIn: 'root'
@@ -64,6 +76,26 @@ export class DataService {
   public readonly doontXlsxBytes$: Observable<Uint8Array | null> = this.decodedFileMap$.pipe(
     map((m: Map<string, Uint8Array>): Uint8Array | null => m.get('Doont.xlsx') ?? null),
     distinctUntilChanged()
+  );
+
+  public readonly doontWorkbook$: Observable<DoontWorkbookDump> = this.doontXlsxBytes$.pipe(
+    filter((bytes: Uint8Array | null): bytes is Uint8Array => bytes !== null && bytes.byteLength > 0),
+    map((bytes: Uint8Array): DoontWorkbookDump => this.parseDoontWorkbook(bytes)),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
+
+  public readonly gameRecords$: Observable<GameRecordEntry[]> = this.doontWorkbook$.pipe(
+    map((wb: DoontWorkbookDump): GameRecordEntry[] => this.parseGameRecords(wb)),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
+
+  public readonly gameRecordsByDate$: Observable<Map<string, GameRecordEntry>> = this.gameRecords$.pipe(
+    map((rows: GameRecordEntry[]): Map<string, GameRecordEntry> => {
+      const out: Map<string, GameRecordEntry> = new Map<string, GameRecordEntry>();
+      for (const row of rows) out.set(row.dateIso, row);
+      return out;
+    }),
+    shareReplay({ bufferSize: 1, refCount: true })
   );
 
   public readonly leaderboardReady$: Observable<boolean> = this.doontXlsxBytes$.pipe(
@@ -155,6 +187,99 @@ export class DataService {
     } catch {
       return null;
     }
+  }
+
+  private parseDoontWorkbook(bytes: Uint8Array): DoontWorkbookDump {
+    // Copy into a fresh ArrayBuffer (avoids ArrayBuffer|SharedArrayBuffer typing issues).
+    const ab: ArrayBuffer = new ArrayBuffer(bytes.byteLength);
+    new Uint8Array(ab).set(bytes);
+    const wb: XLSX.WorkBook = XLSX.read(ab, { type: 'array' });
+    const sheetNames: string[] = wb.SheetNames ?? [];
+    const sheets: DoontSheetDump[] = sheetNames.map((name: string): DoontSheetDump => {
+      const ws: XLSX.WorkSheet | undefined = wb.Sheets?.[name];
+      // header:1 returns an array-of-arrays (raw grid) which is easiest for messy sheets.
+      const rows: unknown[][] = ws ? (XLSX.utils.sheet_to_json(ws, { header: 1, raw: true }) as unknown[][]) : [];
+      return { name, rows };
+    });
+    return { sheetNames, sheets };
+  }
+
+  private parseGameRecords(wb: DoontWorkbookDump): GameRecordEntry[] {
+    const sheet: DoontSheetDump | undefined = wb.sheets.find(s => s.name === 'Game_Record');
+    const rows: unknown[][] = sheet?.rows ?? [];
+    if (rows.length <= 1) return [];
+
+    const out: GameRecordEntry[] = [];
+    for (let i = 1; i < rows.length; i++) {
+      const row: unknown[] = rows[i] ?? [];
+      const gameNumber: number = this.toNumber(row[0]);
+      const dateIso: string | null = this.excelSerialDateToIso(row[1]);
+      if (!Number.isFinite(gameNumber) || !dateIso) continue;
+
+      const startTime: string | null = this.excelSerialTimeToHHmm(row[8]);
+      const endTime: string | null = this.excelSerialTimeToHHmm(row[9]);
+      const durationMinutes: number | null = this.excelSerialDurationToMinutes(row[10]);
+
+      out.push({
+        gameNumber,
+        dateIso,
+        placements: {
+          first: this.toStringOrNull(row[2]),
+          second: this.toStringOrNull(row[3]),
+          third: this.toStringOrNull(row[4]),
+          fourth: this.toStringOrNull(row[5])
+        },
+        startTime,
+        endTime,
+        durationMinutes
+      });
+    }
+
+    out.sort((a, b) => a.gameNumber - b.gameNumber);
+    return out;
+  }
+
+  private excelSerialDateToIso(value: unknown): string | null {
+    const serial: number = this.toNumber(value);
+    if (!Number.isFinite(serial) || serial <= 0) return null;
+    const dc = XLSX.SSF.parse_date_code(serial);
+    if (!dc) return null;
+    const y: number = dc.y;
+    const m: number = dc.m;
+    const d: number = dc.d;
+    if (!y || !m || !d) return null;
+    return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+
+  private excelSerialTimeToHHmm(value: unknown): string | null {
+    if (value == null) return null;
+    const serial: number = this.toNumber(value);
+    if (!Number.isFinite(serial) || serial <= 0) return null;
+    const dc = XLSX.SSF.parse_date_code(serial);
+    if (!dc) return null;
+    const hh: number = dc.H ?? 0;
+    const mm: number = dc.M ?? 0;
+    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+  }
+
+  private excelSerialDurationToMinutes(value: unknown): number | null {
+    if (value == null) return null;
+    const serial: number = this.toNumber(value);
+    if (!Number.isFinite(serial) || serial <= 0) return null;
+    // Excel duration stored as fraction of a day
+    return Math.round(serial * 24 * 60);
+  }
+
+  private toNumber(value: unknown): number {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string' && value.trim().length > 0) return Number(value);
+    return Number.NaN;
+  }
+
+  private toStringOrNull(value: unknown): string | null {
+    if (value == null) return null;
+    const s: string = String(value).trim();
+    return s.length > 0 ? s : null;
   }
 
   private guessImageMimeType(path: string): string {

@@ -1,11 +1,49 @@
 <p>Leaderboard Works</p>
 
 <ng-container *ngIf="dataService.leaderboardReady$ | async; else loading">
-	<p>Doont.xlsx loaded.</p>
-	<p>Latest SHA: {{ dataService.sha$ | async }}</p>
+    <p>Doont.xlsx loaded.</p>
+    <p>Latest SHA: {{ dataService.sha$ | async }}</p>
+
+    <ng-container *ngIf="dataService.doontWorkbook$ | async as wb">
+        <p>Sheets: {{ wb.sheetNames.join(' | ') }}</p>
+    </ng-container>
+
+    <button type="button" (click)="logWorkbook()">Log parsed Doont.xlsx to console</button>
+
+    <ng-container *ngIf="dataService.gameRecords$ | async as games">
+        <h3>Game Record</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Game #</th>
+                    <th>Date</th>
+                    <th>1st</th>
+                    <th>2nd</th>
+                    <th>3rd</th>
+                    <th>4th</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Duration (min)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let g of games">
+                    <td>{{ g.gameNumber }}</td>
+                    <td>{{ g.dateIso }}</td>
+                    <td>{{ g.placements.first }}</td>
+                    <td>{{ g.placements.second }}</td>
+                    <td>{{ g.placements.third }}</td>
+                    <td>{{ g.placements.fourth }}</td>
+                    <td>{{ g.startTime ?? '' }}</td>
+                    <td>{{ g.endTime ?? '' }}</td>
+                    <td>{{ g.durationMinutes ?? '' }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </ng-container>
 </ng-container>
 
 <ng-template #loading>
-	<p>Loading Doont.xlsx…</p>
-	<p>Latest SHA: {{ dataService.sha$ | async }}</p>
+    <p>Loading Doont.xlsx…</p>
+    <p>Latest SHA: {{ dataService.sha$ | async }}</p>
 </ng-template>

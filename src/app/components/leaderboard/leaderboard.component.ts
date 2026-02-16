@@ -1,8 +1,7 @@
-import { Component, OnInit, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
-import { ApiService } from '../../services/api.service';
-import { Observable } from 'rxjs';
 import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
 import { DataService } from '../../services/data.service';
+import { take } from 'rxjs';
 
 @Component({
   selector: 'app-leaderboard',
@@ -11,12 +10,16 @@ import { DataService } from '../../services/data.service';
   templateUrl: './leaderboard.component.html',
   styleUrl: './leaderboard.component.css'
 })
-export class LeaderboardComponent implements OnInit {
+export class LeaderboardComponent {
 
-  constructor(public dataService: DataService) {
+  constructor(public dataService: DataService) { }
+
+  logWorkbook(): void {
+    this.dataService.doontWorkbook$
+      .pipe(take(1))
+      .subscribe((dump) => {
+        console.log('Doont.xlsx workbook dump:', dump);
+        console.log('Doont.xlsx workbook dump (JSON):', JSON.stringify(dump));
+      });
   }
-
-  ngOnInit(): void {
-  }
-
 }
