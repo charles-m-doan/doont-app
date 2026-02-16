@@ -1,11 +1,13 @@
 import { DestroyRef, Injectable, inject } from '@angular/core';
 import { ApiService } from './api.service';
-import { BehaviorSubject, Observable, map, filter, distinctUntilChanged, EMPTY, catchError, from, mergeMap, scan, shareReplay, combineLatest, tap, finalize } from 'rxjs';
+import { BehaviorSubject, Observable, map, filter, distinctUntilChanged, EMPTY, catchError, from, mergeMap, scan, shareReplay, combineLatest, tap, finalize, of } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GitTreeEntryDto } from '../models/response.models';
 import { GitBlobResponseDto } from '../models/response.models';
 import * as XLSX from 'xlsx';
 import { GameRecordEntry, ScreenshotStatus } from '../models/game-record.models';
+import { APP_SETTINGS } from '../config/app-settings';
+import { LocalDataApiService } from './local-data-api.service';
 
 export interface DoontSheetDump {
   name: string;
@@ -32,6 +34,9 @@ export class DataService {
 
   private readonly _blobFetchCompleted: BehaviorSubject<number> = new BehaviorSubject<number>(0);
   public readonly blobFetchCompleted$: Observable<number> = this._blobFetchCompleted.asObservable();
+
+  private readonly isLocalMode: boolean = this.computeIsLocalMode();
+  private readonly localBaseUrl: string = this.computeLocalBaseUrl();
 
   public readonly blobFetchInProgress$: Observable<boolean> = combineLatest([
     this.blobFetchTotal$,
@@ -113,12 +118,24 @@ export class DataService {
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
-  public readonly repoScreenshotPaths$: Observable<Set<string>> = this.apiService.fileListResponse$.pipe(
-    map(r => r.tree),
-    map((entries: GitTreeEntryDto[]): Set<string> => {
+  private readonly localFilePaths$: Observable<string[]> = (this.isLocalMode
+    ? this.localDataApiService.getTree$(this.localBaseUrl).pipe(catchError(() => of([])))
+    : of([]))
+    .pipe(shareReplay({ bufferSize: 1, refCount: true }));
+
+  private readonly blobPathsForScreenshotLookup$: Observable<string[]> = (this.isLocalMode
+    ? this.localFilePaths$
+    : this.apiService.fileListResponse$.pipe(
+      map(r => r.tree),
+      map((entries: GitTreeEntryDto[]) => entries.filter(e => e.type === 'blob').map(e => e.path))
+    ))
+    .pipe(shareReplay({ bufferSize: 1, refCount: true }));
+
+  public readonly repoScreenshotPaths$: Observable<Set<string>> = this.blobPathsForScreenshotLookup$.pipe(
+    map((paths: string[]): Set<string> => {
       const out: Set<string> = new Set<string>();
-      for (const e of entries) {
-        if (e.type === 'blob' && e.path.startsWith('screenshots/')) out.add(e.path);
+      for (const p of paths) {
+        if (p.startsWith('screenshots/')) out.add(p);
       }
       return out;
     }),
@@ -189,7 +206,20 @@ export class DataService {
     distinctUntilChanged()
   );
 
-  constructor(private apiService: ApiService) {
+  constructor(private apiService: ApiService, private localDataApiService: LocalDataApiService) {
+    if (this.isLocalMode) {
+      this.localFilePaths$
+        .pipe(
+          map((paths: string[]): string[] => paths.filter(p => typeof p === 'string' && p.length > 0)),
+          filter((paths: string[]): boolean => paths.length > 0),
+          takeUntilDestroyed(this.destroyRef)
+        )
+        .subscribe((paths: string[]): void => {
+          this.fetchAndStoreLocalFiles(paths);
+        });
+      return;
+    }
+
     this.apiService.fetchLatestSha();
 
     this.sha$
@@ -206,11 +236,11 @@ export class DataService {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((blobs: GitTreeEntryDto[]): void => {
-        this.fetchAndStoreBlobs(blobs);
+        this.fetchAndStoreGitHubBlobs(blobs);
       });
   }
 
-  private fetchAndStoreBlobs(blobs: GitTreeEntryDto[]): void {
+  private fetchAndStoreGitHubBlobs(blobs: GitTreeEntryDto[]): void {
     // New batch: reset map so consumers can treat this as a full refresh.
     this._rawFileMap.next(new Map<string, string>());
 
@@ -241,6 +271,59 @@ export class DataService {
         nextMap.set(path, base64);
         this._rawFileMap.next(nextMap);
       });
+  }
+
+  private fetchAndStoreLocalFiles(paths: string[]): void {
+    this._rawFileMap.next(new Map<string, string>());
+
+    this._blobFetchTotal.next(paths.length);
+    this._blobFetchCompleted.next(0);
+
+    from(paths)
+      .pipe(
+        mergeMap(
+          (p: string) => this.localDataApiService.getFileBase64$(this.localBaseUrl, p)
+            .pipe(
+              map(r => ({ path: r.path, base64: this.normalizeBase64(r.base64) })),
+              catchError(() => EMPTY)
+            ),
+          this.BLOB_FETCH_CONCURRENCY
+        ),
+        tap(() => this._blobFetchCompleted.next(this._blobFetchCompleted.value + 1)),
+        finalize(() => {
+          const total: number = this._blobFetchTotal.value;
+          const completed: number = this._blobFetchCompleted.value;
+          if (total > 0 && completed < total) this._blobFetchCompleted.next(total);
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(({ path, base64 }: { path: string; base64: string }): void => {
+        const nextMap: Map<string, string> = new Map<string, string>(this._rawFileMap.value);
+        nextMap.set(path, base64);
+        this._rawFileMap.next(nextMap);
+      });
+  }
+
+  private computeIsLocalMode(): boolean {
+    try {
+      const params: URLSearchParams = new URLSearchParams(window.location.search);
+      const qs: string | null = params.get('local');
+      if (qs === '1' || qs === 'true') return true;
+    } catch {
+      // ignore (tests / non-browser)
+    }
+    return APP_SETTINGS.isLocal;
+  }
+
+  private computeLocalBaseUrl(): string {
+    try {
+      const params: URLSearchParams = new URLSearchParams(window.location.search);
+      const override: string | null = params.get('localBaseUrl');
+      if (override && override.trim().length > 0) return override.trim().replace(/\/$/, '');
+    } catch {
+      // ignore
+    }
+    return APP_SETTINGS.localDataBaseUrl.replace(/\/$/, '');
   }
 
   private normalizeBase64(content: string | null | undefined): string {

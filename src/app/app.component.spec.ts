@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AppComponent } from './app.component';
 import { ngMocks } from 'ng-mocks';
 import { ApiService } from './services/api.service';
+import { LocalDataApiService } from './services/local-data-api.service';
 import { createMockProvider } from './testing/mocking-util';
 
 describe('AppComponent', () => {
@@ -12,7 +13,8 @@ describe('AppComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
-        createMockProvider(ApiService)
+        createMockProvider(ApiService),
+        createMockProvider(LocalDataApiService)
       ]
     }).compileComponents();
     ngMocks.autoSpy('jasmine');
