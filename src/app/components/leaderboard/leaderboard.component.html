@@ -1,2 +1,11 @@
 <p>Leaderboard Works</p>
-<h2>{{dataService.sha$ | async}}</h2>
+
+<ng-container *ngIf="dataService.leaderboardReady$ | async; else loading">
+	<p>Doont.xlsx loaded.</p>
+	<p>Latest SHA: {{ dataService.sha$ | async }}</p>
+</ng-container>
+
+<ng-template #loading>
+	<p>Loading Doont.xlsx…</p>
+	<p>Latest SHA: {{ dataService.sha$ | async }}</p>
+</ng-template>

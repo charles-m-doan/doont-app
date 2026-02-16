@@ -1,2 +1,10 @@
 <p>Records Works</p>
-<p>Files loaded: {{ (dataService.rawFileMap$ | async)?.size ?? 0 }}</p>
+
+<ng-container *ngIf="dataService.recordsReady$ | async; else loading">
+    <p>Screenshots loaded: {{ dataService.screenshotsCount$ | async }}</p>
+</ng-container>
+
+<ng-template #loading>
+    <p>Loading screenshots…</p>
+    <p>Screenshots loaded so far: {{ dataService.screenshotsCount$ | async }}</p>
+</ng-template>
