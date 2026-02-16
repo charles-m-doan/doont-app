@@ -40,6 +40,26 @@ export class DataService {
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
+  public readonly screenshots$: Observable<Array<{ path: string; dataUrl: string }>> = this.rawFileMap$.pipe(
+    map((m: Map<string, string>): Array<{ path: string; base64: string }> => {
+      const out: Array<{ path: string; base64: string }> = [];
+      for (const [path, base64] of m.entries()) {
+        if (!path.startsWith('screenshots/')) continue;
+        if (!base64) continue;
+        out.push({ path, base64 });
+      }
+      out.sort((a, b) => a.path.localeCompare(b.path));
+      return out;
+    }),
+    map((entries: Array<{ path: string; base64: string }>) =>
+      entries.map(({ path, base64 }) => ({
+        path,
+        dataUrl: `data:${this.guessImageMimeType(path)};base64,${base64}`
+      }))
+    ),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
+
   // ---- Derived "readiness" streams for UI
   public readonly doontXlsxBytes$: Observable<Uint8Array | null> = this.decodedFileMap$.pipe(
     map((m: Map<string, Uint8Array>): Uint8Array | null => m.get('Doont.xlsx') ?? null),
@@ -51,18 +71,8 @@ export class DataService {
     distinctUntilChanged()
   );
 
-  public readonly screenshotsDecodedMap$: Observable<Map<string, Uint8Array>> = this.decodedFileMap$.pipe(
-    map((m: Map<string, Uint8Array>): Map<string, Uint8Array> => {
-      const out: Map<string, Uint8Array> = new Map<string, Uint8Array>();
-      for (const [path, bytes] of m.entries()) {
-        if (path.startsWith('screenshots/')) out.set(path, bytes);
-      }
-      return out;
-    })
-  );
-
-  public readonly screenshotsCount$: Observable<number> = this.screenshotsDecodedMap$.pipe(
-    map((m: Map<string, Uint8Array>): number => m.size),
+  public readonly screenshotsCount$: Observable<number> = this.screenshots$.pipe(
+    map((arr: Array<{ path: string; dataUrl: string }>): number => arr.length),
     distinctUntilChanged()
   );
 
@@ -145,5 +155,14 @@ export class DataService {
     } catch {
       return null;
     }
+  }
+
+  private guessImageMimeType(path: string): string {
+    const p: string = (path ?? '').toLowerCase();
+    if (p.endsWith('.png')) return 'image/png';
+    if (p.endsWith('.jpg') || p.endsWith('.jpeg')) return 'image/jpeg';
+    if (p.endsWith('.gif')) return 'image/gif';
+    if (p.endsWith('.webp')) return 'image/webp';
+    return 'application/octet-stream';
   }
 }

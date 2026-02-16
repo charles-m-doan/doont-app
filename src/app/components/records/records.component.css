@@ -1,0 +1,16 @@
+
+.screenshot {
+	margin: 16px 0;
+}
+
+.path {
+	margin: 0 0 6px 0;
+	word-break: break-word;
+}
+
+img {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}
+

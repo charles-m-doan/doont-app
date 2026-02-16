@@ -1,7 +1,14 @@
 <p>Records Works</p>
 
-<ng-container *ngIf="dataService.recordsReady$ | async; else loading">
-    <p>Screenshots loaded: {{ dataService.screenshotsCount$ | async }}</p>
+<ng-container *ngIf="dataService.screenshots$ | async as shots">
+    <ng-container *ngIf="shots.length > 0; else loading">
+        <p>Screenshots loaded: {{ shots.length }}</p>
+
+        <div class="screenshot" *ngFor="let shot of shots">
+            <div class="path">{{ shot.path }}</div>
+            <img [src]="shot.dataUrl" [alt]="shot.path" loading="lazy" />
+        </div>
+    </ng-container>
 </ng-container>
 
 <ng-template #loading>
